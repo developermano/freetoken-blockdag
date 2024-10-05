@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Faucet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="submit"] {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        input[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+
+        .message {
+            margin: 20px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        #addTokenButton {
+            display: none;
+            /* Hide the button initially */
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #addTokenButton:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>BDAG FREETOKEN Faucet</h1>
+        <p>Enter your wallet address to receive free tokens.</p>
+        <form id="faucetForm">
+            <input type="text" id="walletAddress" name="walletAddress" placeholder="Enter your wallet address" required>
+            <input type="submit" value="Claim Tokens">
+        </form>
+        <div class="message" id="message"></div>
+        <button id="addTokenButton">Add Token to MetaMask</button>
+    </div>
+
+    <script>
+        document.getElementById('faucetForm').addEventListener('submit', async function (event) {
+            event.preventDefault();  // Prevent the form from submitting the traditional way
+
+            const walletAddress = document.getElementById('walletAddress').value;
+            const messageElement = document.getElementById('message');
+            const addTokenButton = document.getElementById('addTokenButton');
+
+            // Display a message while waiting
+            messageElement.innerText = "Processing... Please wait.";
+
+            try {
+                const response = await fetch('/faucet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ walletAddress })
+                });
+
+                // Wait for the response from the Flask server
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageElement.innerHTML = `Tokens sent successfully! \nTxHash: <a href="https://bdagscan.com/txn/${data.txHash}" target="_blank">${data.txHash}</a>`;
+                    addTokenButton.style.display = 'inline-block';  // Show the button after the token is sent
+                } else {
+                    messageElement.innerText = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                messageElement.innerText = `Failed to send tokens. Please try again later. Error: ${error.message}`;
+            }
+        });
+
+        // Add token to MetaMask
+        document.getElementById('addTokenButton').addEventListener('click', async function () {
+            const tokenAddress = "0xAe61757b6cE632A320DDc2e3D67b7E66bC9085bc";
+            const tokenSymbol = "FREETOKEN";
+            const tokenDecimals = 18;
+            const tokenImage = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/64px-Bitcoin.svg.png";  // Example image
+
+            try {
+                const wasAdded = await window.ethereum.request({
+                    method: "wallet_watchAsset",
+                    params: {
+                        type: "ERC20",
+                        options: {
+                            address: tokenAddress,
+                            symbol: tokenSymbol,
+                            decimals: tokenDecimals,
+                            image: tokenImage,
+                        },
+                    },
+                });
+
+                if (wasAdded) {
+                    console.log("Token added to MetaMask!");
+                } else {
+                    console.log("Token addition rejected.");
+                }
+            } catch (error) {
+                console.error("Error adding token to MetaMask:", error);
+            }
+        });
+    </script>
+</body>
+
+</html>
